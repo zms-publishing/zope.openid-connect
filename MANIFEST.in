@@ -1,6 +1,6 @@
 include *.rst
 
 graft docs
-graft plone
+graft zope
 
 global-exclude *pyc

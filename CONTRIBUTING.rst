@@ -1,1 +1,1 @@
-Please see http://docs.plone.org/develop/coredev/docs/guidelines.html
+Please see https://www.zope.org/developer/development-culture.html
