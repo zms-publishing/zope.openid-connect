@@ -1,41 +1,40 @@
 from setuptools import setup, find_packages
 
-version = '2.0.6.dev0'
+version = '0.1.dev0'
 
 setup(
-    name='plone.openid',
+    name='zope.openid-connect',
     version=version,
-    description="OpenID authentication support for PAS",
+    description="OpenID Connect authentication support for PAS",
     long_description=(open("README.rst").read() + '\n' +
                       open("CHANGES.rst").read()),
     classifiers=[
         "Environment :: Web Environment",
-        "Framework :: Plone",
-        "Framework :: Plone :: 5.0",
-        "Framework :: Plone :: 5.1",
-        "Framework :: Zope2",
+        "Framework :: Zope",
+        "Framework :: Zope :: 4",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.7",
-        "Topic :: System :: Systems Administration :: Authentication/Directory",  # noqa
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "Topic :: System :: Systems Administration :: Authentication/Directory",
     ],
-    keywords='PAS openid authentication',
-    author='Plone Foundation',
-    author_email='plone-developers@lists.sourceforge.net',
-    url='https://github.com/plone/plone.openid',
+    keywords='PAS openid-connect authentication',
+    author='Martin Häcker',
+    author_email='spamfaenger@gmx.de', # TODO
+    url='https://github.com/zms-publishing/zope.openid-connect', # TODO
     license='BSD',
-    packages=find_packages(exclude=['ez_setup']),
+    packages=find_packages(),
     namespace_packages=['plone'],
     include_package_data=True,
     zip_safe=False,
     install_requires=[
         'setuptools',
-        'python-openid >=2.2.1,<2.3dev',
+        'Zope > 4',
         'transaction',
         'Acquisition',
-        'Products.PluggableAuthService',
         'ZODB3',
-        'Zope2',
+        'Products.PluggableAuthService',
+        'authlib',
     ],
     )

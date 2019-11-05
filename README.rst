@@ -1,10 +1,10 @@
-OpenID PAS support
+OpenID Connect PAS support
 ==================
 
 Introduction
 ------------
 
-This product implements OpenID_ authentication support for Zope_ via a
+This product implements OpenIDConnect_ authentication support for Zope_ via a
 Pluggable Authentication Service plugin.
 
 Using this package everyone with an OpenID authentity will be able to
@@ -13,8 +13,14 @@ beyond the standard Authenticated role. This allows you to make a distinction
 between people that have explicitly signed up to your site and people
 who are unknown but have succesfully verified their identity.
 
+This was forked from plone.openid_ to support Python 3 and OpenIDConnect_
+
 .. _Zope: http://www.zope.org/
-.. _OpenID: http://www.openidenabled.com/
+.. OpenIDConnect_: https://openid.net/connect/
+.. plone.openid_: https://github.com/plone/plone.openid
+
+
+TODO Update rest of document
 
 Authentication flow
 -------------------
