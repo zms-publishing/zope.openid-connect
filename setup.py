@@ -20,8 +20,8 @@ setup(
         "Topic :: System :: Systems Administration :: Authentication/Directory",
     ],
     keywords='PAS openid-connect authentication',
-    author='Martin Häcker',
-    author_email='spamfaenger@gmx.de', # TODO
+    author='Zope Foundation and Contributors',
+    author_email='zope-dev@zope.org',
     url='https://github.com/zms-publishing/zope.openid-connect', # TODO
     license='BSD',
     packages=find_packages(),
