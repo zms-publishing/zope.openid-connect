@@ -4,11 +4,12 @@ from BTrees.OOBTree import OOBTree
 from BTrees.OIBTree import OITreeSet
 import time
 
-from openid.store.interface import OpenIDStore
-from openid.store.nonce import SKEW
-from openid.association import Association
+# from openid.store.interface import OpenIDStore
+# from openid.store.nonce import SKEW
+# from openid.association import Association
 
-class ZopeStore(OpenIDStore):
+# class ZopeStore(OpenIDStore):
+class ZopeStore(object):
     """Zope OpenID store.
 
     This class implements an OpenID store which uses the ZODB.

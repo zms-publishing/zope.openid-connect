@@ -8,10 +8,11 @@ from Products.PluggableAuthService.interfaces.plugins \
                 import IAuthenticationPlugin, IUserEnumerationPlugin
 from zExceptions import Redirect
 import transaction
-from openid.yadis.discover import DiscoveryFailure
-from openid.consumer.consumer import Consumer, SUCCESS
 import logging
 import six
+
+# from openid.yadis.discover import DiscoveryFailure
+# from openid.consumer.consumer import Consumer, SUCCESS
 
 from ..interfaces import IOpenIdExtractionPlugin
 from ..store import ZopeStore
