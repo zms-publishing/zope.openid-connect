@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from Acquisition import aq_parent
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
@@ -5,13 +6,15 @@ from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
                 import IAuthenticationPlugin, IUserEnumerationPlugin
-from plone.openid.interfaces import IOpenIdExtractionPlugin
-from plone.openid.store import ZopeStore
 from zExceptions import Redirect
 import transaction
 from openid.yadis.discover import DiscoveryFailure
 from openid.consumer.consumer import Consumer, SUCCESS
 import logging
+import six
+
+from ..interfaces import IOpenIdExtractionPlugin
+from ..store import ZopeStore
 
 manage_addOpenIdPlugin = PageTemplateFile("../www/openidAdd", globals(),
                 __name__="manage_addOpenIdPlugin")
@@ -69,7 +72,7 @@ class OpenIdPlugin(BasePlugin):
             creds.clear()
             creds["openid.source"]="server"
             creds["janrain_nonce"]=request.form.get("janrain_nonce")
-            for (field,value) in request.form.iteritems():
+            for (field,value) in six.iteritems(request.form):
                 if field.startswith("openid.") or field.startswith("openid1_"):
                     creds[field]=request.form[field]
         elif mode=="cancel":
@@ -83,11 +86,11 @@ class OpenIdPlugin(BasePlugin):
         consumer=self.getConsumer()
         try:
             auth_request=consumer.begin(identity_url)
-        except DiscoveryFailure, e:
+        except DiscoveryFailure as e:
             logger.info("openid consumer discovery error for identity %s: %s",
                     identity_url, e[0])
             return
-        except KeyError, e:
+        except KeyError as e:
             logger.info("openid consumer error for identity %s: %s",
                     identity_url, e.why)
             pass
@@ -111,7 +114,7 @@ class OpenIdPlugin(BasePlugin):
         # get things working.
         # XXX this also f**ks up ZopeTestCase
         transaction.commit()
-        raise Redirect, url
+        raise Redirect(url)
 
 
     # IExtractionPlugin implementation
@@ -133,7 +136,7 @@ class OpenIdPlugin(BasePlugin):
 
     # IAuthenticationPlugin implementation
     def authenticateCredentials(self, credentials):
-        if not credentials.has_key("openid.source"):
+        if "openid.source" not in credentials:
             return None
 
         if credentials["openid.source"]=="server":

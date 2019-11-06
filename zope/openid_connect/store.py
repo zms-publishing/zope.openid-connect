@@ -1,10 +1,12 @@
-from openid.store.interface import OpenIDStore
-from openid.store.nonce import SKEW
-from openid.association import Association
+from __future__ import absolute_import
 from persistent.list import PersistentList
 from BTrees.OOBTree import OOBTree
 from BTrees.OIBTree import OITreeSet
 import time
+
+from openid.store.interface import OpenIDStore
+from openid.store.nonce import SKEW
+from openid.association import Association
 
 class ZopeStore(OpenIDStore):
     """Zope OpenID store.

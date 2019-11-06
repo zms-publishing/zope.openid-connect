@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from Products.PluggableAuthService.interfaces.plugins import IExtractionPlugin
 
 class IOpenIdExtractionPlugin(IExtractionPlugin):

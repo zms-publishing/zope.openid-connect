@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import unittest2 as unittest
 from zExceptions import Redirect
 
@@ -44,7 +45,7 @@ class TestOpenIdExtraction(unittest.TestCase):
         plugin.REQUEST.form.update(self.server_response)
         plugin.REQUEST.form["__ac_identity_url"]=""
         creds=plugin.extractCredentials(plugin.REQUEST)
-        self.assertFalse(creds.has_key("__ac_identity_url"))
+        self.assertFalse("__ac_identity_url" in creds)
 
     @unittest.skip("This test fails randomly on Jenkins")
     def testLeadingWhiteSpacesInIdentityExtraction(self):

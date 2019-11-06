@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from AccessControl.Permissions import manage_users as ManageUsers
 from Products.PluggableAuthService.PluggableAuthService import registerMultiPlugin
 

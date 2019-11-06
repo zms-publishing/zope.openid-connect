@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from plone.openid import django_random
 
 
