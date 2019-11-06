@@ -4,6 +4,6 @@
 
   <five:registerPackage package="." initialize=".initialize" />
 
-  <include package="plone.session" />
+  <!-- include package="plone.session" / -->
 
 </configure>
