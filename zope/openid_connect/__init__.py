@@ -16,6 +16,6 @@ def initialize(context):
             oid.addOpenIdPlugin
         ),
         visibility = None,
-        icon = "www/openid.png",
+        icon = "www/openid.png", # REFACT icons are handled differently in zope 4
     )
 

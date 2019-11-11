@@ -1,0 +1,3 @@
+<form tal:attributes="action request/URL" type=post>
+    <button name=login_with_google value=1 type=submit>Login With Google</button>
+</form>

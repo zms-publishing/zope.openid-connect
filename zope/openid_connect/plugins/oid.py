@@ -5,7 +5,7 @@ from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
 from Products.PluggableAuthService.interfaces.plugins \
-                import IAuthenticationPlugin, IUserEnumerationPlugin
+                import IAuthenticationPlugin, IUserEnumerationPlugin, IChallengePlugin
 from zExceptions import Redirect
 import transaction
 import logging
@@ -57,7 +57,11 @@ class OpenIdPlugin(BasePlugin):
         session=self.REQUEST["SESSION"]
         return Consumer(session, self.store)
 
-
+    def challenge(self, request, response):
+        login_form = PageTemplateFile("../www/openid_login_form.zpt", globals()).__of__(self)
+        response.setBody(login_form())
+        return True # We took responsibility for the challenge
+    
     def extractOpenIdServerResponse(self, request, creds):
         """Process incoming redirect from an OpenId server.
 
@@ -125,6 +129,9 @@ class OpenIdPlugin(BasePlugin):
         It takes either the zope cookie and extracts openid credentials
         from it, or a redirect from an OpenID server.
         """
+        if request.form.get('login_with_google'):
+            pass # we got here from our own challenge site -> handle login now
+            
         creds={}
         identity=request.form.get("__ac_identity_url", "").strip()
         if identity != "":
@@ -197,8 +204,12 @@ class OpenIdPlugin(BasePlugin):
                 } ]
 
 
-
-classImplements(OpenIdPlugin, IOpenIdExtractionPlugin, IAuthenticationPlugin,
-                IUserEnumerationPlugin)
+# REFACT use decorator? zope.interface.implements
+classImplements(OpenIdPlugin,
+    IOpenIdExtractionPlugin,
+    IAuthenticationPlugin,
+    IUserEnumerationPlugin,
+    IChallengePlugin,
+)
 
 
