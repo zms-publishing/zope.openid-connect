@@ -57,6 +57,7 @@ class OpenIdPlugin(BasePlugin):
         session=self.REQUEST["SESSION"]
         return Consumer(session, self.store)
 
+    # IChallengePlugin
     def challenge(self, request, response):
         login_form = PageTemplateFile("../www/openid_login_form.zpt", globals()).__of__(self)
         response.setBody(login_form())
