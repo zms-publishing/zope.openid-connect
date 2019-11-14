@@ -1,0 +1,87 @@
+from zExceptions import Redirect
+
+from .framework_integration import FrameworkIntegration
+
+class ZopeIntegration(FrameworkIntegration):
+    
+    def send_token_update(self, remote_app, name, token, refresh_token, access_token):
+        pass
+    
+    def get_query_arguments_dict(self, request):
+        return dict(request.form)
+    
+    def get_form_dict(self, request):
+        return dict(request.form)
+    
+    # REFACT should probably get request as argument
+    def set_request_global_value(self, name, value):
+        # These values are not exposed to the user (e.g. through a cookie based session)
+        # Never shared between requests, but can be setup even without a request
+        # but are not shared between different flask apps active at the same time
+        print('set_request_global_value - not implemented yet')
+        breakpoint()
+    
+    # REFACT should probably get request as argument
+    def get_request_global_value(self, name, default_value=None):
+        # These values are not exposed to the user (e.g. through a cookie based session)
+        print('get_request_global_value - not implemented yet')
+        breakpoint()
+    
+    def set_session_value(self, name, value):
+        print('set_session_value',  name, value)
+        self.session[name] = value
+    
+    def get_session_value(self, name, default_value):
+        print('get_session_value', name, default_value, self.session.get(name, default_value))
+        return self.session.get(name, default_value)
+    
+    # REFACT is this really neccessary?
+    # The BaseApp uses session.pop() in _get_session_value() - but why?
+    def delete_session_value(self, name):
+        print('delete_session_value', name)
+        self.session.pop(name, None)
+    
+    # REFACT same, really neccessary?
+    def pop_session_value(self, name, default_value):
+        value = self.get_session_value(name, default_value)
+        print('pop_session_value', name, default_value, value)
+        self.delete_session_value(name)
+        return value
+    
+    # REFACT this should go away, probably more complex though
+    def get_current_request(self):
+        from zope.globalrequest import getRequest
+        return getRequest()
+    
+    # REFACT this should go away, or return a proxy that adapts the interface of the local session to something
+    # authlib expects
+    def get_current_session(self):
+        return self.session # Fishy, as the session object I'm suplying here, doesn't quite have the same interface. 
+    
+    def create_redirect_for_url(self, url):
+        return Redirect(url)
+    
+    # OAuthRegistry support
+    
+    def is_fully_configured(self):
+        return True # no half configured state supported for this plugin
+    
+    def assert_is_fully_configured(self):
+        pass # no half configured state supported for this integration
+    
+    # REFACT consider rename did_finish_oauth_registry_setup
+    def finish_registry_setup(self, registry):
+        pass
+    
+    def get_config(self, name, default_value):
+        value = self.config.get(name, default_value)
+        print('get_config', name, default_value, value)
+        return value
+    
+    def has_user_invisible_persistent_cache(self):
+        return True
+    
+    def create_delayed_proxy_for_function(self, a_function):
+        # Only required if self.assert_is_fully_configured() can return False
+        print('create_delayed_proxy_for_function - not implemented yet')
+        breakpoint()
