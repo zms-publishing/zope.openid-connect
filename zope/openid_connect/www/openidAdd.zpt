@@ -7,7 +7,7 @@
         tal:replace="structure here/manage_form_title">Form Title</h2>
 
     <p class="form-help">
-      The OpenID plugin adds support for the OpenID authentication system
+      The OpenID Connect Plugin adds support for the OpenID Connect authentication system
       to Zope.
     </p>
 
@@ -24,7 +24,7 @@
         <tr>
           <td colspan="2">
             <div class="form-element">
-              <input type="submit" value="add OpenId plugin"/>
+              <input type="submit" value="add OpenId Connect Plugin"/>
             </div>
           </td>
         </tr>
