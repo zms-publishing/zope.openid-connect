@@ -16,6 +16,7 @@ import six
 
 from ..interfaces import IOpenIdExtractionPlugin
 from ..store import ZopeStore
+from ..sham_oidc import ShamOIDC
 
 manage_addOpenIdPlugin = PageTemplateFile("../www/openidAdd", globals(),
                 __name__="manage_addOpenIdPlugin")
@@ -23,7 +24,7 @@ manage_addOpenIdPlugin = PageTemplateFile("../www/openidAdd", globals(),
 logger = logging.getLogger("PluggableAuthService")
 
 def addOpenIdPlugin(self, id, title='', REQUEST=None):
-    """Add a OpenID plugin to a Pluggable Authentication Service.
+    """Add a OpenID Connect Plugin to a Pluggable Authentication Service.
     """
     p=OpenIdPlugin(id, title)
     self._setObject(p.getId(), p)
@@ -34,84 +35,119 @@ def addOpenIdPlugin(self, id, title='', REQUEST=None):
                 self.absolute_url())
 
 
+from zope.openid_connect.authlib_integration import RemoteApp, OAuth
+from zope.openid_connect.authlib_integration.zope import ZopeIntegration
+
+class Cache(object):
+    def __init__(self, cache):
+        self._data = cache
+
+    def get(self, k):
+        breakpoint()
+        return self._data.get(k)
+
+    def set(self, k, v, timeout=None):
+        breakpoint()
+        self._data[k] = v
+
+    def delete(self, k):
+        breakpoint()
+        if k in self._data:
+            del self._data[k]
+
+
+class ZopeRemoteApp(RemoteApp, ShamOIDC):
+    pass
+
+
 class OpenIdPlugin(BasePlugin):
     """OpenID authentication plugin.
     """
 
-    meta_type = "OpenID plugin"
+    meta_type = "OpenID Connect Plugin"
     security = ClassSecurityInfo()
 
     def __init__(self, id, title=None):
         self._setId(id)
         self.title=title
         self.store=ZopeStore()
-
-
+        
+        self.initializeAuthlib()
+    
+    def initializeAuthlib(self):
+        # FIXME it probably makes sense _not_ to store the ZopeIntegration, OAuth and remote client in the plugin
+        self.integration = ZopeIntegration()
+        self.integration.plugin = self
+        self.integration.cache = Cache(self.store.cache)
+        self.integration.session = {}
+        
+        # FIXME this needs to come from the config obviously, cannot be hardcoded in here
+        self.integration.config = dict(
+            SHAM_OIDC_CLIENT_ID='328993',
+            SHAM_OIDC_CLIENT_SECRET='94d83f9b5686af2d0d2c2b3bc02d0296d3f9df4659dc5cdff5408f22',
+        )
+        
+        self.oauth = OAuth(framework_integration=self.integration)
+        
+        backend_cls = ShamOIDC
+        config = backend_cls.OAUTH_CONFIG.copy()
+        config['client_cls'] = ZopeRemoteApp
+        self.remote = self.oauth.register(backend_cls.OAUTH_NAME, overwrite=True, **config)
+        self.remote.framework_integration = self.integration
+    
     def getTrustRoot(self):
         pas=self._getPAS()
         site=aq_parent(pas)
         return site.absolute_url()
-
-
+    
     def getConsumer(self):
         session=self.REQUEST["SESSION"]
         return Consumer(session, self.store)
-
+    
     # IChallengePlugin
     def challenge(self, request, response):
         login_form = PageTemplateFile("../www/openid_login_form.zpt", globals()).__of__(self)
         response.setBody(login_form())
         return True # We took responsibility for the challenge
     
-    def extractOpenIdServerResponse(self, request, creds):
-        """Process incoming redirect from an OpenId server.
-
-        The redirect is detected by looking for the openid.mode
-        form parameters. If it is found the creds parameter is
-        cleared and filled with the found credentials.
-        """
-
-        mode=request.form.get("openid.mode", None)
-        if mode=="id_res":
-            # id_res means 'positive assertion' in OpenID, more commonly
-            # described as 'positive authentication'
-            creds.clear()
-            creds["openid.source"]="server"
-            creds["janrain_nonce"]=request.form.get("janrain_nonce")
-            for (field,value) in six.iteritems(request.form):
-                if field.startswith("openid.") or field.startswith("openid1_"):
-                    creds[field]=request.form[field]
-        elif mode=="cancel":
-            # cancel is a negative assertion in the OpenID protocol,
-            # which means the user did not authorize correctly.
-            pass
-
-
+    def extractOpenIdServerResponse(self, request, credentials):
+        breakpoint()
+        # REFACT consider how much of this can go into a function on the RemoteApp
+        # The framwork integration could easily handle all the accessor needs
+        id_token = request.form.get('id_token')
+        if request.form.get('code'):
+            token = self.remote.authorize_access_token()
+            if id_token:
+                token['id_token'] = id_token
+        elif id_token:
+            token = {'id_token': id_token}
+        elif request.form.get('oauth_verifier'):
+            # OAuth 1
+            token = self.remote.authorize_access_token()
+        else:
+            # handle failed
+            return handle_authorize(self.remote, None, None)
+        if 'id_token' in token:
+            nonce = self.remote.get_nonce_from_session()
+            user_info = self.remote.parse_openid(token, nonce)
+        else:
+            user_info = self.remote.profile(token=token)
+        return self.handle_authorize(token, user_info)
+    
+    def handle_authorize(self, token, user_info):
+        breakpoint()
+    
     # IOpenIdExtractionPlugin implementation
-    def initiateChallenge(self, identity_url, return_to=None):
-        consumer=self.getConsumer()
-        try:
-            auth_request=consumer.begin(identity_url)
-        except DiscoveryFailure as e:
-            logger.info("openid consumer discovery error for identity %s: %s",
-                    identity_url, e[0])
-            return
-        except KeyError as e:
-            logger.info("openid consumer error for identity %s: %s",
-                    identity_url, e.why)
-            pass
-
-        if return_to is None:
-            return_to=self.REQUEST.form.get("came_from", None)
-        if not return_to or 'janrain_nonce' in return_to:
-            # The conditional on janrain_nonce here is to handle the case where
-            # the user logs in, logs out, and logs in again in succession.  We
-            # were ending up with duplicate open ID variables on the second response
-            # from the OpenID provider, which was breaking the second login.
-            return_to=self.getTrustRoot()
-
-        url=auth_request.redirectURL(self.getTrustRoot(), return_to)
-
+    def initiateChallenge(self):
+        # TODO This is a problem, since open id connect requires a hardcoded 
+        # pre/configured URL to return to (AFAIK)
+        redirect_uri = self.REQUEST.form.get("came_from", None)
+        
+        conf_key = '{}_AUTHORIZE_PARAMS'.format(self.remote.OAUTH_NAME.upper())
+        params = self.integration.get_config(conf_key, {})
+        if 'oidc' in self.remote.OAUTH_TYPE:
+            params['nonce'] = self.remote.generate_session_stored_nonce()
+        
         # There is evilness here: we can not use a normal RESPONSE.redirect
         # since further processing of the request will happily overwrite
         # our redirect. So instead we raise a Redirect exception, However
@@ -120,9 +156,9 @@ class OpenIdPlugin(BasePlugin):
         # get things working.
         # XXX this also f**ks up ZopeTestCase
         transaction.commit()
-        raise Redirect(url)
-
-
+        
+        raise self.remote.authorize_redirect(redirect_uri, **params)
+    
     # IExtractionPlugin implementation
     def extractCredentials(self, request):
         """This method performs the PAS credential extraction.
@@ -130,17 +166,15 @@ class OpenIdPlugin(BasePlugin):
         It takes either the zope cookie and extracts openid credentials
         from it, or a redirect from an OpenID server.
         """
-        if request.form.get('login_with_google'):
-            pass # we got here from our own challenge site -> handle login now
-            
-        creds={}
-        identity=request.form.get("__ac_identity_url", "").strip()
-        if identity != "":
-            self.initiateChallenge(identity)
-            return creds
-
-        self.extractOpenIdServerResponse(request, creds)
-        return creds
+        
+        if request.form.get('login_with_open_id_connect'):
+            self.initiateChallenge() # raises Redirect
+        
+        credentials = dict()
+        oidc_reply_identifiers = ['id_token', 'code', 'oauth_verifier']
+        if any(each in request.form for each in oidc_reply_identifiers):
+            self.extractOpenIdServerResponse(request, credentials)
+        return credentials
 
 
     # IAuthenticationPlugin implementation
@@ -177,8 +211,7 @@ class OpenIdPlugin(BasePlugin):
 
 
     # IUserEnumerationPlugin implementation
-    def enumerateUsers(self, id=None, login=None, exact_match=False,
-            sort_by=None, max_results=None, **kw):
+    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
         """Slightly evil enumerator.
 
         This is needed to be able to get PAS to return a user which it should

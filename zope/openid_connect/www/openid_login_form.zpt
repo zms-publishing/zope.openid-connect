@@ -1,3 +1,4 @@
 <form tal:attributes="action request/URL" type=post>
-    <button name=login_with_google value=1 type=submit>Login With Google</button>
+    <input type="hidden" name="came_from" value="placeholder" tal:attributes="value request/URL">
+    <button name=login_with_open_id_connect value=1 type=submit>Login With OpenID Connect</button>
 </form>
