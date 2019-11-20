@@ -1,4 +1,8 @@
 from __future__ import absolute_import
+
+from functools import wraps
+import logging
+
 from Acquisition import aq_parent
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
@@ -8,7 +12,6 @@ from Products.PluggableAuthService.interfaces.plugins \
                 import IAuthenticationPlugin, IUserEnumerationPlugin, IChallengePlugin
 from zExceptions import Redirect
 import transaction
-import logging
 import six
 
 # from openid.yadis.discover import DiscoveryFailure
@@ -22,6 +25,17 @@ manage_addOpenIdPlugin = PageTemplateFile("../www/openidAdd", globals(),
                 __name__="manage_addOpenIdPlugin")
 
 logger = logging.getLogger("PluggableAuthService")
+
+
+def log_exceptions(wrapped):
+    @wraps(wrapped)
+    def wrapper(*args, **kwargs):
+        try:
+            return wrapped(*args, **kwargs)
+        except Exception as e:
+            logger.exception('an exception happened in one of the PluggableAuth methods')
+            raise
+    return wrapper
 
 def addOpenIdPlugin(self, id, title='', REQUEST=None):
     """Add a OpenID Connect Plugin to a Pluggable Authentication Service.
@@ -37,24 +51,6 @@ def addOpenIdPlugin(self, id, title='', REQUEST=None):
 
 from zope.openid_connect.authlib_integration import RemoteApp, OAuth
 from zope.openid_connect.authlib_integration.zope import ZopeIntegration
-
-class Cache(object):
-    def __init__(self, cache):
-        self._data = cache
-
-    def get(self, k):
-        breakpoint()
-        return self._data.get(k)
-
-    def set(self, k, v, timeout=None):
-        breakpoint()
-        self._data[k] = v
-
-    def delete(self, k):
-        breakpoint()
-        if k in self._data:
-            del self._data[k]
-
 
 class ZopeRemoteApp(RemoteApp, ShamOIDC):
     pass
@@ -75,11 +71,9 @@ class OpenIdPlugin(BasePlugin):
         self.initializeAuthlib()
     
     def initializeAuthlib(self):
-        # FIXME it probably makes sense _not_ to store the ZopeIntegration, OAuth and remote client in the plugin
+        # FIXME it probably makes sense _not_ to store the ZopeIntegration, OAuth and remote client in the plugin and thus in the ZODB but instead create instances on demand
         self.integration = ZopeIntegration()
         self.integration.plugin = self
-        self.integration.cache = Cache(self.store.cache)
-        self.integration.session = {}
         
         # FIXME this needs to come from the config obviously, cannot be hardcoded in here
         self.integration.config = dict(
@@ -95,23 +89,20 @@ class OpenIdPlugin(BasePlugin):
         self.remote = self.oauth.register(backend_cls.OAUTH_NAME, overwrite=True, **config)
         self.remote.framework_integration = self.integration
     
+    # TODO what is this 
     def getTrustRoot(self):
         pas=self._getPAS()
         site=aq_parent(pas)
         return site.absolute_url()
     
-    def getConsumer(self):
-        session=self.REQUEST["SESSION"]
-        return Consumer(session, self.store)
-    
     # IChallengePlugin
+    @log_exceptions
     def challenge(self, request, response):
         login_form = PageTemplateFile("../www/openid_login_form.zpt", globals()).__of__(self)
         response.setBody(login_form())
         return True # We took responsibility for the challenge
     
     def extractOpenIdServerResponse(self, request, credentials):
-        breakpoint()
         # REFACT consider how much of this can go into a function on the RemoteApp
         # The framwork integration could easily handle all the accessor needs
         id_token = request.form.get('id_token')
@@ -137,6 +128,7 @@ class OpenIdPlugin(BasePlugin):
     def handle_authorize(self, token, user_info):
         breakpoint()
     
+    # REFACT Does this interface make any sense? We're the only one to implement it anyway
     # IOpenIdExtractionPlugin implementation
     def initiateChallenge(self):
         # TODO This is a problem, since open id connect requires a hardcoded 
@@ -148,6 +140,8 @@ class OpenIdPlugin(BasePlugin):
         if 'oidc' in self.remote.OAUTH_TYPE:
             params['nonce'] = self.remote.generate_session_stored_nonce()
         
+        redirect = self.remote.authorize_redirect(redirect_uri, **params)
+        
         # There is evilness here: we can not use a normal RESPONSE.redirect
         # since further processing of the request will happily overwrite
         # our redirect. So instead we raise a Redirect exception, However
@@ -157,9 +151,10 @@ class OpenIdPlugin(BasePlugin):
         # XXX this also f**ks up ZopeTestCase
         transaction.commit()
         
-        raise self.remote.authorize_redirect(redirect_uri, **params)
+        raise redirect
     
     # IExtractionPlugin implementation
+    @log_exceptions
     def extractCredentials(self, request):
         """This method performs the PAS credential extraction.
 
@@ -178,6 +173,7 @@ class OpenIdPlugin(BasePlugin):
 
 
     # IAuthenticationPlugin implementation
+    @log_exceptions
     def authenticateCredentials(self, credentials):
         if "openid.source" not in credentials:
             return None
@@ -211,6 +207,7 @@ class OpenIdPlugin(BasePlugin):
 
 
     # IUserEnumerationPlugin implementation
+    @log_exceptions
     def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
         """Slightly evil enumerator.
 

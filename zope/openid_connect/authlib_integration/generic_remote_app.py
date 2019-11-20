@@ -117,10 +117,8 @@ class RemoteApp(_RemoteApp, UserInfoMixin):
         session = self.framework_integration.get_current_session()
         # FIXME superclass should go through framework_integration.{get,set}_session_value()
         request.session = session
-        breakpoint()
         params = self.retrieve_access_token_params(request, request_token)
         params.update(kwargs)
-        breakpoint()
         token = self.fetch_access_token(**params)
         self.token = token
         return token
