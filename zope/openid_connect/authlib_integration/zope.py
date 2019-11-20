@@ -18,33 +18,27 @@ class ZopeIntegration(FrameworkIntegration):
         # These values are not exposed to the user (e.g. through a cookie based session)
         # Never shared between requests, but can be setup even without a request
         # but are not shared between different flask apps active at the same time
-        print('set_request_global_value',  name, value)
         self.get_current_session()[name] = value
     
     # REFACT should probably get request as argument
     def get_request_global_value(self, name, default_value=None):
         # These values are not exposed to the user (e.g. through a cookie based session)
-        print('get_request_global_value',  name, value, default_value)
         return self.get_current_session().get(name, default_value)
     
     def set_session_value(self, name, value):
-        print('set_session_value',  name, value)
         self.get_current_session()[name] = value
     
     def get_session_value(self, name, default_value=None):
-        print('get_session_value', name, default_value, self.get_current_session().get(name, default_value))
         return self.get_current_session().get(name, default_value)
     
     # REFACT is this really neccessary?
     # The BaseApp uses session.pop() in _get_session_value() - but why?
     def delete_session_value(self, name):
-        print('delete_session_value', name, self.get_session_value(name))
         return self.pop_session_value(name)
     
     # REFACT same, really neccessary?
     def pop_session_value(self, name, default_value=None):
         value = self.get_session_value(name, default_value)
-        print('pop_session_value', name, value)
         
         if name in self.get_current_session():
             del self.get_current_session()[name]
@@ -78,7 +72,6 @@ class ZopeIntegration(FrameworkIntegration):
     
     def get_config(self, name, default_value):
         value = self.config.get(name, default_value)
-        print('get_config', name, default_value, value)
         return value
     
     def has_user_invisible_persistent_cache(self):
@@ -86,5 +79,4 @@ class ZopeIntegration(FrameworkIntegration):
     
     def create_delayed_proxy_for_function(self, a_function):
         # Only required if self.assert_is_fully_configured() can return False
-        print('create_delayed_proxy_for_function - not implemented yet')
         breakpoint()
