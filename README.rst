@@ -1,5 +1,5 @@
 OpenID Connect PAS support
-==================
+==========================
 
 Introduction
 ------------
@@ -16,8 +16,18 @@ who are unknown but have succesfully verified their identity.
 This was forked from plone.openid_ to support Python 3 and OpenIDConnect_
 
 .. _Zope: http://www.zope.org/
-.. OpenIDConnect_: https://openid.net/connect/
-.. plone.openid_: https://github.com/plone/plone.openid
+.. _OpenIDConnect: https://openid.net/connect/
+.. _plone.openid: https://github.com/plone/plone.openid
+
+Testing / Development
+---------------------
+
+This is developed with ShamOIDC_ as the OpenIDConnect_ provider.
+
+Get that running first, then configure your local Zope_ instance to 
+run against that.
+
+.. _ShamOIDC: https://github.com/johnpaulett/sham-oidc
 
 
 TODO Update rest of document
