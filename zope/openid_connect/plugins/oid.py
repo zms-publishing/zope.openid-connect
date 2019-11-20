@@ -89,7 +89,9 @@ class OpenIdPlugin(BasePlugin):
         self.remote = self.oauth.register(backend_cls.OAUTH_NAME, overwrite=True, **config)
         self.remote.framework_integration = self.integration
     
-    # TODO what is this 
+    # This seems to have been used to get an absolute URL for the response, to ensure
+    # that all redirects back to us are on a canonical url.
+    # TODO need to enable this again, or OIDC registration will be impossible
     def getTrustRoot(self):
         pas=self._getPAS()
         site=aq_parent(pas)
@@ -117,16 +119,25 @@ class OpenIdPlugin(BasePlugin):
             token = self.remote.authorize_access_token()
         else:
             # handle failed
-            return handle_authorize(self.remote, None, None)
+            return handle_authorize(credentials, None, None)
         if 'id_token' in token:
             nonce = self.remote.get_nonce_from_session()
             user_info = self.remote.parse_openid(token, nonce)
         else:
             user_info = self.remote.profile(token=token)
-        return self.handle_authorize(token, user_info)
+        return self.handle_authorize(credentials, token, user_info)
     
-    def handle_authorize(self, token, user_info):
-        breakpoint()
+    def handle_authorize(self, credentials, token, user_info):
+        if token is None or user_info is None:
+            logger.info("OpenIDConnect authentication failed")
+            return
+            
+        # print(token, user_info)
+        # See https://docs.authlib.org/en/latest/client/oauth2.html#oidc-session
+        # how to decode the id_token contained in token
+        # user authenticated
+        credentials['oidc_token'] = token
+        credentials['oidc_user_info'] = user_info
     
     # REFACT Does this interface make any sense? We're the only one to implement it anyway
     # IOpenIdExtractionPlugin implementation
@@ -169,42 +180,24 @@ class OpenIdPlugin(BasePlugin):
         oidc_reply_identifiers = ['id_token', 'code', 'oauth_verifier']
         if any(each in request.form for each in oidc_reply_identifiers):
             self.extractOpenIdServerResponse(request, credentials)
+        
         return credentials
 
 
     # IAuthenticationPlugin implementation
     @log_exceptions
     def authenticateCredentials(self, credentials):
-        if "openid.source" not in credentials:
-            return None
-
-        if credentials["openid.source"]=="server":
-            consumer=self.getConsumer()
-
-            # remove the extractor key that PAS adds to the credentials,
-            # or python-openid will complain
-            query = credentials.copy()
-            del query['extractor']
-            if 'login' in query and query['login'] is None:
-                # PAS has tried to lowercase the login, but login was not in
-                # the credentials, so it is now None.
-                # This would result in an AttributeError in consumer.complete,
-                # so we remove it.
-                del query['login']
-
-            result=consumer.complete(query, self.REQUEST.ACTUAL_URL)
-            identity=result.identity_url
-
-            if result.status==SUCCESS:
-                self._getPAS().updateCredentials(self.REQUEST,
-                        self.REQUEST.RESPONSE, identity, "")
-                return (identity, identity)
-            else:
-                logger.info("OpenId Authentication for %s failed: %s",
-                                identity, result.message)
-
-        return None
-
+        "maps credentials to (user_id, login) or None"
+        
+        if 'oidc_token' not in credentials or 'oidc_user_info' not in credentials:
+            return None # not authenticated
+        
+        user_id = credentials['oidc_token']['id_token']
+        login = credentials['oidc_user_info']['nickname']
+        self._getPAS().updateCredentials(self.REQUEST, self.REQUEST.RESPONSE, login, "")
+        logging.info('OpenIDConnect authentication complete, user_id=%s nickname=%s', user_id, login)
+        print('OpenIDConnect authentication complete, user_id=%s nickname=%s' % (user_id, login))
+        return (user_id, login)
 
     # IUserEnumerationPlugin implementation
     @log_exceptions
