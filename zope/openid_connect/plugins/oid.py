@@ -4,6 +4,7 @@ from functools import wraps
 import logging
 
 from Acquisition import aq_parent
+from AccessControl.class_init import InitializeClass
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
@@ -205,4 +206,5 @@ classImplements(OpenIdPlugin,
     IChallengePlugin,
 )
 
+InitializeClass(OpenIdPlugin)
 
