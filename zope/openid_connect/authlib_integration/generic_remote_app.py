@@ -28,7 +28,18 @@ class RemoteApp(_RemoteApp, UserInfoMixin):
             refresh_token=refresh_token,
             access_token=access_token,
         )
+    
+    def _set_session_data(self, request, key, value):
+        sess_key = '_{}_authlib_{}_'.format(self.name, key)
+        # request.session[sess_key] = value
+        self.framework_integration.set_session_value(sess_key, value)
 
+    def _get_session_data(self, request, key):
+        sess_key = '_{}_authlib_{}_'.format(self.name, key)
+        # Seems fishy, pop() will remove the key from the session
+        # return request.session.pop(sess_key, None)
+        return self.framework_integration.pop_session_value(sess_key, None)
+    
     def _generate_access_token_params(self, request):
         if self.request_token_url:
             return self.framework_integration.dict_from_request_query_arguments(request)
