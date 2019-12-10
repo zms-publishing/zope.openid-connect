@@ -1,4 +1,5 @@
 from loginpass._core import UserInfo, OAuthBackend
+
 # OAuthBackend is just a subclass of authlib.integrations._client.RemoteApp
 class ShamOIDC(OAuthBackend):
     OAUTH_TYPE ="2.0,oidc"
