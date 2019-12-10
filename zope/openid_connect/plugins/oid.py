@@ -61,7 +61,7 @@ class OpenIdPlugin(BasePlugin):
     """OpenID authentication plugin.
     """
 
-    meta_type = "OpenID Connect Plugin"
+    meta_type = "OpenID Connect Plugin"    
     security = ClassSecurityInfo()
 
     def __init__(self, id, title=None):
@@ -90,13 +90,19 @@ class OpenIdPlugin(BasePlugin):
         self.remote = self.oauth.register(backend_cls.OAUTH_NAME, overwrite=True, **config)
         self.remote.framework_integration = self.integration
     
+    @security.public
+    def oidcCallbackURI(self):
+        """Takes callbacks from open id connect providers and dispatches the user to 
+        the page he tried to access when he was prompted to login"""
+        return self.REQUEST.response.redirect(self.integration.get_session_value('came_from'))
+        raise self.integration.create_redirect_for_url(self.integration.get_session_value('came_from'))
+    
     # This seems to have been used to get an absolute URL for the response, to ensure
     # that all redirects back to us are on a canonical url.
     # TODO need to enable this again, or OIDC registration will be impossible
-    def getTrustRoot(self):
-        pas=self._getPAS()
-        site=aq_parent(pas)
-        return site.absolute_url()
+    def getOIDCRedirectURL(self):
+        # REFACT use urljoin?
+        return self.absolute_url() + '/' + self.oidcCallbackURI.__name__
     
     # IChallengePlugin
     @log_exceptions
@@ -162,7 +168,10 @@ class OpenIdPlugin(BasePlugin):
         if 'oidc' in self.remote.OAUTH_TYPE:
             params['nonce'] = self.remote.generate_session_stored_nonce()
         
-        redirect = self.remote.authorize_redirect(redirect_uri, **params)
+        came_from = self.REQUEST.form.get("came_from", None)
+        self.integration.set_session_value('came_from', came_from)
+        
+        redirect = self.remote.authorize_redirect(self.getOIDCRedirectURL(), **params)
         
         # There is evilness here: we can not use a normal RESPONSE.redirect
         # since further processing of the request will happily overwrite
