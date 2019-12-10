@@ -101,8 +101,20 @@ class OpenIdPlugin(BasePlugin):
     # IChallengePlugin
     @log_exceptions
     def challenge(self, request, response):
+        """Very simple login form.
+        
+        This is vastly over simplified. If you need a real login form, 
+        you should probably use the CookieAuthHelper, and design a custom login form.
+        
+        Just make sure the submit button is called `login_with_open_id_connect` 
+        if you want to trigger open id connect login and that it contains a form 
+        field `came_from` with the url you want to redirect to after the login.
+        """
         login_form = PageTemplateFile("../www/openid_login_form.zpt", globals()).__of__(self)
+        response.setHeader('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT')
+        response.setHeader('Cache-Control', 'no-cache')
         response.setBody(login_form())
+        
         return True # We took responsibility for the challenge
     
     def extractOpenIdServerResponse(self, request, credentials):
