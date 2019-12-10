@@ -2,10 +2,19 @@ from zExceptions import Redirect
 
 from .framework_integration import FrameworkIntegration
 
+def trace(wrapped):
+    from functools import wraps
+    @wraps(wrapped)
+    def wrapper(*args, **kwargs):
+        return_value = wrapped(*args, **kwargs)
+        # print(wrapped, args, kwargs, '->', return_value)
+        return return_value
+    return wrapper
+
 class ZopeIntegration(FrameworkIntegration):
     
     def send_token_update(self, remote_app, name, token, refresh_token, access_token):
-        pass
+        pass # TODO understand how this would work in zope
     
     def get_query_arguments_dict(self, request):
         return dict(request.form)
@@ -14,6 +23,7 @@ class ZopeIntegration(FrameworkIntegration):
         return dict(request.form)
     
     # REFACT should probably get request as argument
+    @trace
     def set_request_global_value(self, name, value):
         # These values are not exposed to the user (e.g. through a cookie based session)
         # Never shared between requests, but can be setup even without a request
@@ -21,22 +31,27 @@ class ZopeIntegration(FrameworkIntegration):
         self.get_current_session()[name] = value
     
     # REFACT should probably get request as argument
+    @trace
     def get_request_global_value(self, name, default_value=None):
         # These values are not exposed to the user (e.g. through a cookie based session)
         return self.get_current_session().get(name, default_value)
     
+    @trace
     def set_session_value(self, name, value):
         self.get_current_session()[name] = value
     
+    @trace
     def get_session_value(self, name, default_value=None):
         return self.get_current_session().get(name, default_value)
     
     # REFACT is this really neccessary?
     # The BaseApp uses session.pop() in _get_session_value() - but why?
+    @trace
     def delete_session_value(self, name):
         return self.pop_session_value(name)
     
     # REFACT same, really neccessary?
+    @trace
     def pop_session_value(self, name, default_value=None):
         value = self.get_session_value(name, default_value)
         
@@ -70,6 +85,7 @@ class ZopeIntegration(FrameworkIntegration):
     def finish_registry_setup(self, registry):
         pass
     
+    @trace
     def get_config(self, name, default_value):
         value = self.config.get(name, default_value)
         return value
