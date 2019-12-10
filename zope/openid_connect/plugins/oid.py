@@ -8,8 +8,9 @@ from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.PageTemplates.PageTemplateFile import PageTemplateFile
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 from Products.PluggableAuthService.utils import classImplements
-from Products.PluggableAuthService.interfaces.plugins \
-                import IAuthenticationPlugin, IUserEnumerationPlugin, IChallengePlugin
+from Products.PluggableAuthService.interfaces.plugins import (
+    IExtractionPlugin, IAuthenticationPlugin, IChallengePlugin
+)
 from zExceptions import Redirect
 import transaction
 import six
@@ -17,7 +18,6 @@ import six
 # from openid.yadis.discover import DiscoveryFailure
 # from openid.consumer.consumer import Consumer, SUCCESS
 
-from ..interfaces import IOpenIdExtractionPlugin
 from ..store import ZopeStore
 from ..sham_oidc import ShamOIDC
 
@@ -139,8 +139,6 @@ class OpenIdPlugin(BasePlugin):
         credentials['oidc_token'] = token
         credentials['oidc_user_info'] = user_info
     
-    # REFACT Does this interface make any sense? We're the only one to implement it anyway
-    # IOpenIdExtractionPlugin implementation
     def initiateChallenge(self):
         # TODO This is a problem, since open id connect requires a hardcoded 
         # pre/configured URL to return to (AFAIK)
@@ -199,40 +197,11 @@ class OpenIdPlugin(BasePlugin):
         print('OpenIDConnect authentication complete, user_id=%s nickname=%s' % (user_id, login))
         return (user_id, login)
 
-    # IUserEnumerationPlugin implementation
-    @log_exceptions
-    def enumerateUsers(self, id=None, login=None, exact_match=False, sort_by=None, max_results=None, **kw):
-        """Slightly evil enumerator.
-
-        This is needed to be able to get PAS to return a user which it should
-        be able to handle but who can not be enumerated.
-
-        We do this by checking for the exact kind of call the PAS getUserById
-        implementation makes
-        """
-        if id and login and id!=login:
-            return None
-
-        if (id and not exact_match) or kw:
-            return None
-
-        key=id and id or login
-
-        if not (key.startswith("http:") or key.startswith("https:")):
-            return None
-
-        return [ {
-                    "id" : key,
-                    "login" : key,
-                    "pluginid" : self.getId(),
-                } ]
-
 
 # REFACT use decorator? zope.interface.implements
 classImplements(OpenIdPlugin,
-    IOpenIdExtractionPlugin,
+    IExtractionPlugin,
     IAuthenticationPlugin,
-    IUserEnumerationPlugin,
     IChallengePlugin,
 )
 
