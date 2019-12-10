@@ -159,12 +159,11 @@ class OpenIdPlugin(BasePlugin):
         # user authenticated
         credentials['oidc_token'] = token
         credentials['oidc_user_info'] = user_info
+        
+        self.integration.set_session_value('oidc_token', token)
+        self.integration.set_session_value('oidc_user_info', user_info)
     
     def initiateChallenge(self):
-        # TODO This is a problem, since open id connect requires a hardcoded 
-        # pre/configured URL to return to (AFAIK)
-        redirect_uri = self.REQUEST.form.get("came_from", None)
-        
         conf_key = '{}_AUTHORIZE_PARAMS'.format(self.remote.OAUTH_NAME.upper())
         params = self.integration.get_config(conf_key, {})
         if 'oidc' in self.remote.OAUTH_TYPE:
@@ -198,6 +197,14 @@ class OpenIdPlugin(BasePlugin):
             self.initiateChallenge() # raises Redirect
         
         credentials = dict()
+        
+        session = self.integration.get_current_session()
+        if 'oidc_token' in session and 'oidc_user_info' in session:
+            print('extractCredentials using cached credentials')
+            credentials['oidc_token'] = session['oidc_token']
+            credentials['oidc_user_info'] = session['oidc_user_info']
+            return credentials
+        
         oidc_reply_identifiers = ['id_token', 'code', 'oauth_verifier']
         if any(each in request.form for each in oidc_reply_identifiers):
             self.extractOpenIdServerResponse(request, credentials)
