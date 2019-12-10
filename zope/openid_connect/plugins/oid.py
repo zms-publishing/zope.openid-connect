@@ -25,19 +25,6 @@ from ..sham_oidc import ShamOIDC
 manage_addOpenIdPlugin = PageTemplateFile("../www/openidAdd", globals(),
                 __name__="manage_addOpenIdPlugin")
 
-logger = logging.getLogger("PluggableAuthService")
-
-
-def log_exceptions(wrapped):
-    @wraps(wrapped)
-    def wrapper(*args, **kwargs):
-        try:
-            return wrapped(*args, **kwargs)
-        except Exception as e:
-            logger.exception('an exception happened in one of the PluggableAuth methods')
-            raise
-    return wrapper
-
 def addOpenIdPlugin(self, id, title='', REQUEST=None):
     """Add a OpenID Connect Plugin to a Pluggable Authentication Service.
     """
@@ -48,6 +35,19 @@ def addOpenIdPlugin(self, id, title='', REQUEST=None):
         REQUEST["RESPONSE"].redirect("%s/manage_workspace"
                 "?manage_tabs_message=OpenID+plugin+added." %
                 self.absolute_url())
+
+
+logger = logging.getLogger("PluggableAuthService")
+
+def log_exceptions(wrapped):
+    @wraps(wrapped)
+    def wrapper(*args, **kwargs):
+        try:
+            return wrapped(*args, **kwargs)
+        except Exception as e:
+            logger.exception('an exception happened in one of the PluggableAuth methods')
+            raise
+    return wrapper
 
 
 from zope.openid_connect.authlib_integration import RemoteApp, OAuth
