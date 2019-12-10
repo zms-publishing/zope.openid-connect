@@ -146,6 +146,8 @@ class OpenIdPlugin(BasePlugin):
             user_info = self.remote.profile(token=token)
         return self.handle_authorize(credentials, token, user_info)
     
+    # REFACT inline? Initially I thought that there will be more happening in this method
+    # REFACT intercaps to comply with zope?
     def handle_authorize(self, credentials, token, user_info):
         if token is None or user_info is None:
             logger.info("OpenIDConnect authentication failed")
@@ -181,7 +183,6 @@ class OpenIdPlugin(BasePlugin):
         # get things working.
         # XXX this also f**ks up ZopeTestCase
         transaction.commit()
-        
         raise redirect
     
     # IExtractionPlugin implementation
